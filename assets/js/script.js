@@ -13,6 +13,7 @@ var createTask = function(taskText, taskDate, taskList) {
   // append span and p element to parent li
   taskLi.append(taskSpan, taskP);
 
+  auditTask(taskLi);
 
   // append to ul list on the page
   $("#list-" + taskList).append(taskLi);
@@ -86,6 +87,11 @@ $(".list-group").on("blur", "textarea", function(){
   $(this).replaceWith(taskP);
 });
 
+//Implements JqueryUi datepicker 
+$("#modalDueDate").datepicker({
+  minDate: 1
+});
+
 //Due date was clicked
 $(".list-group").on("click", "span", function(){
   //Get current text
@@ -99,6 +105,14 @@ $(".list-group").on("click", "span", function(){
     .addClass("form-control")
     .val(date);
 
+  //Enables jquery ui datepicker
+  dateInput.datepicker({
+    minDate: 1,
+    onClose: function() {
+      $(this).trigger("change");
+    }
+  });
+
   //Swap out the elements
   $(this).replaceWith(dateInput);
 
@@ -107,7 +121,7 @@ $(".list-group").on("click", "span", function(){
 });
 
 //Value of the due date has changed
-$(".list-group").on("blur", "input[type='text']", function() {
+$(".list-group").on("change", "input[type='text']", function() {
   //Get current text
   var date = $(this)
     .val()
@@ -135,7 +149,29 @@ $(".list-group").on("blur", "input[type='text']", function() {
 
   //Repace input with span element
   $(this).replaceWith(taskSpan);
+
+  //Pass tasks's <li> element into auditTask() to check new due date
+  auditTask($(taskSpan).closest(".list-group-item"));
 })
+
+//Logic determining whether a task is overdue or not
+var auditTask = function(taskEl) {
+  //Get data from taskEl
+  var date = $(taskEl).find("span").text().trim();
+
+  var time = moment(date, "L").set("hour", 17);
+
+  //Removes any old classes from element
+  $(taskEl).removeClass("list-group-item-warning list-group-itme-danger");
+
+  //Apply new class if task is near/over due date
+  if(moment().isAfter(time)) {
+    $(taskEl).addClass("list-group-item-danger");
+  } 
+  else if(Math.abs(moment().diff(time, "days")) <= 2) {
+    $(taskEl).addClass("list-group-item-warning");
+  }
+};
 
 //Makes all listItemEl sortable, as well as contains the logic to update our local storage arrays
 $(".card .list-group").sortable({
